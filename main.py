@@ -8,7 +8,9 @@ from fetch_block_data import (
     store_block_to_mongo
 )
 
-load_dotenv()
+if os.getenv("ENV") != "production":
+    from dotenv import load_dotenv
+    load_dotenv()
 
 app = FastAPI()
 
@@ -67,4 +69,5 @@ def update_blocks():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
