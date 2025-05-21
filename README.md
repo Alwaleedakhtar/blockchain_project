@@ -33,6 +33,8 @@ python3 -m uvicorn main:app --reload
 
 ## Requirements
 
+To deploy on Azure App Service, set the Startup Command to: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app`
+
 - Python 3.8+
 - MongoDB Atlas account
 - Internet connection for blockchain.info API access 
