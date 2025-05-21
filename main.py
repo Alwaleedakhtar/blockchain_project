@@ -1,56 +1,70 @@
+import os
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
 from pymongo import MongoClient
 from fetch_block_data import (
     fetch_block_by_height,
     get_latest_block_height,
     store_block_to_mongo
 )
-from detect_anomaly import (
-    detect_block_height_anomalies,
-    detect_time_gap_anomalies,
-    detect_block_metrics_anomalies
-)
 
-def main():
-    # ✅ Connect to MongoDB Atlas instead of localhost
-    client = MongoClient("mongodb+srv://alakhtar:blockchain@cluster0.vt7no8i.mongodb.net/")
-    db = client["blockchain_insight"]
-    collection = db["bitcoin_blocks"]
+load_dotenv()
 
-    print("Fetching latest Bitcoin block height...")
-    latest_height = get_latest_block_height()
+app = FastAPI()
 
-    if latest_height is None:
-        print("Could not fetch latest block height.")
-    else:
-        print(f"Latest block height: {latest_height}")
+# MongoDB Atlas connection
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise Exception("MONGO_URI is not set")
 
-        # Check the latest block already in DB
+try:
+    client = MongoClient(MONGO_URI)
+    # Test the connection
+    client.admin.command('ping')
+    print("Successfully connected to MongoDB Atlas!")
+except Exception as e:
+    print(f"Failed to connect to MongoDB Atlas: {e}")
+    raise Exception(f"Failed to connect to MongoDB Atlas: {e}")
+
+db = client[os.getenv("DATABASE_NAME", "blockchain_insight")]
+collection = db[os.getenv("COLLECTION_NAME", "bitcoin_blocks")]
+
+@app.get("/")
+def root():
+    try:
+        # Test database connection
+        client.admin.command('ping')
+        return {
+            "message": "Blockchain Insight API is running and connected to MongoDB Atlas.",
+            "status": "healthy"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
+
+@app.get("/blocks")
+def get_blocks():
+    try:
+        blocks = list(collection.find({}, {"_id": 0}).sort("height", -1).limit(40))
+        return {"blocks": blocks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching blocks: {str(e)}")
+
+@app.post("/update")
+def update_blocks():
+    try:
+        latest_height = get_latest_block_height()
         latest_in_db = collection.find_one(sort=[("height", -1)])
         start_height = latest_in_db["height"] + 1 if latest_in_db else latest_height - 40
-
-        print(f"Fetching blocks {start_height} to {latest_height} and inserting into MongoDB...")
 
         for height in range(start_height, latest_height + 1):
             block = fetch_block_by_height(height)
             if block:
                 store_block_to_mongo(block, collection)
-                print(f"Inserted block {block['height']}")
-            else:
-                print(f"Failed to fetch block {height}")
 
-        print("\nRunning anomaly detection modules...\n")
-
-        print("Running block height anomaly detection...")
-        detect_block_height_anomalies()
-
-        print("\nRunning block time gap anomaly detection...")
-        detect_time_gap_anomalies()
-
-        print("\nRunning anomaly detection on block metrics (transactions, fees, size)...")
-        detect_block_metrics_anomalies()
-
-    client.close()
-    print("MongoDB client connection closed cleanly.")
+        return {"message": f"Updated blocks {start_height} to {latest_height}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating blocks: {str(e)}")
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
