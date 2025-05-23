@@ -37,4 +37,4 @@ To deploy on Azure App Service, set the Startup Command to: `gunicorn -w 4 -k uv
 
 - Python 3.8+
 - MongoDB Atlas account
-- Internet connection for blockchain.info API access 
+- Internet connection for blockchain.info API access # Dummy commit to trigger Azure redeploy
