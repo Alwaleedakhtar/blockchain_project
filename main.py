@@ -1,3 +1,4 @@
+# Azure App Service deployment - Updated for Python 3.10
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -19,10 +20,8 @@ from api_block import (
     combine_anomalies
 )
 
-
-if os.getenv("ENV") != "production":
-    from dotenv import load_dotenv
-    load_dotenv()
+# Load environment variables
+load_dotenv()
 
 app = FastAPI()
 
@@ -83,6 +82,7 @@ def update_blocks():
 def anomalies():
     return get_anomalies(collection)
 
+# This is for local development only
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
