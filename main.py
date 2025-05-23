@@ -7,6 +7,18 @@ from fetch_block_data import (
     get_latest_block_height,
     store_block_to_mongo
 )
+import pandas as pd
+
+from api_block import (
+    update_bitcoin_blocks,
+    load_bitcoin_data,
+    get_last_n_blocks,
+    apply_statistical_detectors,
+    apply_isolation_forest,
+    get_anomalies,
+    combine_anomalies
+)
+
 
 if os.getenv("ENV") != "production":
     from dotenv import load_dotenv
@@ -66,6 +78,10 @@ def update_blocks():
         return {"message": f"Updated blocks {start_height} to {latest_height}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating blocks: {str(e)}")
+
+@app.get("/anomalies")
+def anomalies():
+    return get_anomalies(collection)
 
 if __name__ == "__main__":
     import uvicorn
