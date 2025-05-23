@@ -49,7 +49,8 @@ def root():
         client.admin.command('ping')
         return {
             "message": "Blockchain Insight API is running and connected to MongoDB Atlas.",
-            "status": "healthy"
+            "status": "healthy",
+            "environment": os.getenv("ENV", "development")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
@@ -86,4 +87,5 @@ def anomalies():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
+    print(f"Starting server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
